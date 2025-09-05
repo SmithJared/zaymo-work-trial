@@ -2,7 +2,7 @@
 -- Run this SQL in your Supabase SQL editor
 
 create table urls (
-  id bigint generated always as identity primary key,
+  id int8 generated always as identity primary key,
   long_url text not null,
   created_at timestamp with time zone default now(),
   expires_at timestamp with time zone,  -- optional: null means never expires
