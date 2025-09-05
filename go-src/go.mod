@@ -1,6 +1,6 @@
 module shortener
 
-go 1.25.1
+go 1.25.0
 
 require (
 	github.com/jxskiss/base62 v1.1.0
