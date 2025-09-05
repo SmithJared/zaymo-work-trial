@@ -28,7 +28,7 @@ function App() {
 
     try {
       // TODO: Make this configurable - for now assuming backend runs on localhost:8080
-      const response = await fetch('http://localhost:8080/shorten', {
+      const response = await fetch('https://zaymo-work-trial.onrender.com/shorten', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
