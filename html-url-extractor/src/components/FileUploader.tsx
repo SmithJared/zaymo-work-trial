@@ -1,6 +1,6 @@
 // src/components/FileUploader.tsx
 
-import { type ChangeEvent } from 'react';
+import { type ChangeEvent, type DragEvent, useState } from 'react';
 
 interface FileUploaderProps {
   onFileSelect: (file: File) => void;
@@ -8,9 +8,40 @@ interface FileUploaderProps {
 }
 
 export default function FileUploader({ onFileSelect, fileName }: FileUploaderProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       onFileSelect(event.target.files[0]);
+    }
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check if it's an HTML file
+      if (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+        onFileSelect(file);
+      } else {
+        alert('Please select an HTML file (.html or .htm)');
+      }
     }
   };
 
@@ -18,7 +49,14 @@ export default function FileUploader({ onFileSelect, fileName }: FileUploaderPro
     <div className="w-full max-w-2xl">
       <label
         htmlFor="file-upload"
-        className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+        className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+          isDragOver 
+            ? 'border-blue-400 bg-blue-50' 
+            : 'border-gray-300 bg-white hover:bg-gray-50'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
           <svg className="w-8 h-8 mb-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

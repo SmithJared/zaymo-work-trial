@@ -2,6 +2,9 @@
 
 ## Backend
 
+### Server
+- Right now the server accepts requests from any origin. It would be beneficial to limit this to only accept requests from the frontend.
+
 ### Database
 
 - Right now the server connects to supabase using the supabase-go client. If supabase was the ultimate choice for persistent storage then it would be beneficial to use a Direct Connection to the database. This would allow for faster access to the database and also allow for more control over the database.

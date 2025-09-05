@@ -26,13 +26,12 @@ type URLRecord struct {
 }
 
 type ShortenedURL struct {
-	ID       int64  `json:"id"`
 	LongURL  string `json:"long_url"`
 	ShortURL string `json:"short_url"`
 }
 
 type ShortenResponse struct {
-	Shortened []map[string]string `json:"shortened"`
+	Shortened []ShortenedURL `json:"shortened"`
 }
 
 func NewURLService() *URLService {
@@ -79,12 +78,13 @@ func (s *URLService) shortenHandler(c echo.Context) error {
 
 	// Convert IDs to Base62 short codes and build response
 	baseURL := getBaseURL(c)
-	shortened := make([]map[string]string, len(results))
+	shortened := make([]ShortenedURL, len(results))
 	for i, record := range results {
-		shortCode := base62.EncodeToString([]byte(fmt.Sprintf("%d", record.ID)))
+		shortCode := base62.EncodeToString(fmt.Appendf(nil, "%d", record.ID))
 		shortURL := fmt.Sprintf("%s/%s", baseURL, shortCode)
-		shortened[i] = map[string]string{
-			record.LongURL: shortURL,
+		shortened[i] = ShortenedURL{
+			LongURL:  record.LongURL,
+			ShortURL: shortURL,
 		}
 	}
 

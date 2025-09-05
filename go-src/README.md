@@ -50,12 +50,7 @@ create table urls (
 
 ```bash
 # Load environment variables and start the server
-source .env && go run main.go
-```
-
-Or with explicit environment variables:
-```bash
-SUPABASE_URL=your-url SUPABASE_KEY=your-key go run main.go
+export $(cat .env | xargs) && go run .
 ```
 
 ## API Endpoints

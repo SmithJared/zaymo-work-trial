@@ -4,12 +4,19 @@ import { useState } from 'react';
 import FileUploader from './components/FileUploader';
 import UrlList from './components/UrlList';
 
-type Status = 'idle' | 'processing' | 'success';
+type Status = 'idle' | 'processing' | 'success' | 'shortening' | 'shortened';
+
+interface ShortenedUrl {
+  long_url: string;
+  short_url: string;
+}
 
 function App() {
   const [urls, setUrls] = useState<string[]>([]);
+  const [shortenedUrls, setShortenedUrls] = useState<ShortenedUrl[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
+  const [error, setError] = useState<string | null>(null);
 
   const extractCssUrls = (cssText: string): string[] => {
     const urls: string[] = [];
@@ -27,6 +34,43 @@ function App() {
     }
     
     return urls;
+  };
+
+  const shortenUrls = async (urlsToShorten: string[]) => {
+    if (urlsToShorten.length === 0) {
+      setStatus('success');
+      return;
+    }
+
+    setStatus('shortening');
+    setError(null);
+
+    try {
+      // TODO: Make this configurable - for now assuming backend runs on localhost:8080
+      const response = await fetch('http://localhost:8080/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          urls: urlsToShorten
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Backend now returns array of ShortenedURL objects directly
+      setShortenedUrls(data.shortened || []);
+      setStatus('shortened');
+    } catch (err) {
+      console.error('Error shortening URLs:', err);
+      setError(err instanceof Error ? err.message : 'Failed to shorten URLs');
+      setStatus('success'); // Fall back to showing original URLs
+    }
   };
 
   const handleFileSelect = (file: File) => {
@@ -70,8 +114,14 @@ function App() {
         const rawCssUrls = extractCssUrls(content);
         rawCssUrls.forEach(url => uniqueUrls.add(url));
 
-        setUrls(Array.from(uniqueUrls).sort());
+        const extractedUrls = Array.from(uniqueUrls).sort();
+        setUrls(extractedUrls);
         setStatus('success');
+        
+        // Automatically send URLs to backend for shortening
+        if (extractedUrls.length > 0) {
+          shortenUrls(extractedUrls);
+        }
       }
     };
 
@@ -86,7 +136,12 @@ function App() {
       </div>
 
       <FileUploader onFileSelect={handleFileSelect} fileName={fileName} />
-      <UrlList urls={urls} status={status} />
+      <UrlList 
+        urls={urls} 
+        shortenedUrls={shortenedUrls}
+        status={status} 
+        error={error}
+      />
     </main>
   );
 }
