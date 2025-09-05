@@ -17,26 +17,9 @@ function App() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [modifiedHtml, setModifiedHtml] = useState<string>('');
 
-  const extractCssUrls = (cssText: string): string[] => {
-    const urls: string[] = [];
-    
-    // Regular expression to match url() functions in CSS
-    // Matches: url("..."), url('...'), url(...)
-    const urlRegex = /url\(\s*["']?([^"'\)\s]+)["']?\s*\)/gi;
-    
-    let match;
-    while ((match = urlRegex.exec(cssText)) !== null) {
-      const url = match[1];
-      if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-        urls.push(url);
-      }
-    }
-    
-    return urls;
-  };
-
-  const shortenUrls = async (urlsToShorten: string[]) => {
+  const shortenUrls = async (urlsToShorten: string[], htmlContent?: string) => {
     if (urlsToShorten.length === 0) {
       setStatus('success');
       return;
@@ -64,7 +47,15 @@ function App() {
       const data = await response.json();
       
       // Backend now returns array of ShortenedURL objects directly
-      setShortenedUrls(data.shortened || []);
+      const shortenedUrlsData = data.shortened || [];
+      setShortenedUrls(shortenedUrlsData);
+      
+      // Replace URLs in the original HTML content
+      if (htmlContent && shortenedUrlsData.length > 0) {
+        const htmlWithShortUrls = replaceUrlsInHtml(htmlContent, shortenedUrlsData);
+        setModifiedHtml(htmlWithShortUrls);
+      }
+      
       setStatus('shortened');
     } catch (err) {
       console.error('Error shortening URLs:', err);
@@ -82,7 +73,7 @@ function App() {
 
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      if (content) {
+      if (content) { 
         const parser = new DOMParser();
         const doc = parser.parseFromString(content, 'text/html');
         const uniqueUrls = new Set<string>();
@@ -120,7 +111,7 @@ function App() {
         
         // Automatically send URLs to backend for shortening
         if (extractedUrls.length > 0) {
-          shortenUrls(extractedUrls);
+          shortenUrls(extractedUrls, content);
         }
       }
     };
@@ -141,9 +132,57 @@ function App() {
         shortenedUrls={shortenedUrls}
         status={status} 
         error={error}
+        modifiedHtml={modifiedHtml}
+        fileName={fileName}
       />
     </main>
   );
+}
+
+/**
+ * Extracts URLs from CSS text.
+ * 
+ * @param cssText - The CSS text to extract URLs from.
+ * @returns An array of URLs extracted from the CSS text.
+ */
+function extractCssUrls(cssText: string): string[] {
+  const urls: string[] = [];
+    
+  // Regular expression to match url() functions in CSS
+  // Matches: url("..."), url('...'), url(...)
+  const urlRegex = /url\(\s*["']?([^"'\)\s]+)["']?\s*\)/gi;
+  
+  let match;
+  while ((match = urlRegex.exec(cssText)) !== null) {
+    const url = match[1];
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      urls.push(url);
+    }
+  }
+  
+  return urls;
+}
+
+/**
+ * Replaces URLs in HTML content with their shortened versions.
+ * 
+ * @param htmlContent - The HTML content to replace URLs in.
+ * @param urlMappings - An array of objects containing the long URL and its shortened version.
+ * @returns The modified HTML content with URLs replaced.
+ */
+function replaceUrlsInHtml(htmlContent: string, urlMappings: ShortenedUrl[]): string {
+  let modifiedContent = htmlContent;
+  
+  urlMappings.forEach(({ long_url, short_url }) => {
+    // Create a global regex to replace all occurrences of the long URL
+    // We need to escape special regex characters in the URL
+    const escapedLongUrl = long_url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const urlRegex = new RegExp(escapedLongUrl, 'g');
+    
+    modifiedContent = modifiedContent.replace(urlRegex, short_url);
+  });
+  
+  return modifiedContent;
 }
 
 export default App;
