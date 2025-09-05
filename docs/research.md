@@ -26,8 +26,8 @@
 [x] How will I:
 [ ] [x] Parse out all urls (I am thinking doing a string search for "https" but that could be time/memory expensive)
 [ ] [x] Retain where in the html those urls exist for replacing them with the shortening links 
-[ ] Can I make a single round trip to the database inserting all of the long urls and receiving the indexs for each on of them and retain which index maps to which urls?
-[ ] The current DOMParser works great for finding the urls however it missed on in a css import "url()". I am not sure how to find all of those.
+[x] Can I make a single round trip to the database inserting all of the long urls and receiving the indexs for each on of them and retain which index maps to which urls?
+[x] The current DOMParser works great for finding the urls however it missed on in a css import "url()". I am not sure how to find all of those.
 
 ## Tech Stack
 
