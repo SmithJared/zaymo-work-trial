@@ -1,13 +1,21 @@
 // src/components/FileUploader.tsx
 
 import { type ChangeEvent, type DragEvent, useState } from 'react';
+import { toast } from 'sonner';
 
+interface ShortenedUrl {
+  long_url: string;
+  short_url: string;
+}
 interface FileUploaderProps {
   onFileSelect: (file: File) => void;
   fileName: string | null;
+  status: 'idle' | 'processing' | 'success' | 'shortening' | 'shortened';
+  modifiedHtml: string;
+  shortenedUrls: ShortenedUrl[];
 }
 
-export default function FileUploader({ onFileSelect, fileName }: FileUploaderProps) {
+export default function FileUploader({ onFileSelect, fileName, status, modifiedHtml, shortenedUrls }: FileUploaderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -45,14 +53,36 @@ export default function FileUploader({ onFileSelect, fileName }: FileUploaderPro
     }
   };
 
+  const downloadModifiedHtml = () => {
+    if (!modifiedHtml || !fileName) return;
+    
+    const blob = new Blob([modifiedHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Create new filename with '_shortened' suffix
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+    const extension = fileName.includes('.') ? fileName.split('.').pop() : 'html';
+    const downloadFileName = `${nameWithoutExt}_shortened.${extension}`;
+    link.download = downloadFileName;
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`Downloaded ${downloadFileName}`);
+  };
+
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md">
       <label
         htmlFor="file-upload"
         className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
           isDragOver 
             ? 'border-blue-400 bg-blue-50' 
-            : 'border-gray-300 bg-white hover:bg-gray-50'
+            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -73,6 +103,19 @@ export default function FileUploader({ onFileSelect, fileName }: FileUploaderPro
         <p className="mt-4 text-center text-sm text-green-600 font-medium">
           File selected: {fileName}
         </p>
+      )} 
+       {status === 'shortened' && shortenedUrls.length > 0 && modifiedHtml && (
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={downloadModifiedHtml}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Shortened HTML
+          </button>
+        </div>
       )}
     </div>
   );

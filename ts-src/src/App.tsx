@@ -1,8 +1,8 @@
 // src/App.tsx
 
 import { useState } from 'react';
+import { toast, Toaster } from 'sonner';
 import FileUploader from './components/FileUploader';
-import UrlList from './components/UrlList';
 
 type Status = 'idle' | 'processing' | 'success' | 'shortening' | 'shortened';
 
@@ -12,11 +12,9 @@ interface ShortenedUrl {
 }
 
 function App() {
-  const [urls, setUrls] = useState<string[]>([]);
   const [shortenedUrls, setShortenedUrls] = useState<ShortenedUrl[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
-  const [error, setError] = useState<string | null>(null);
   const [modifiedHtml, setModifiedHtml] = useState<string>('');
 
   const shortenUrls = async (urlsToShorten: string[], htmlContent?: string) => {
@@ -26,7 +24,7 @@ function App() {
     }
 
     setStatus('shortening');
-    setError(null);
+    toast.loading('Shortening URLs...', { id: 'shortening' });
 
     try {
       // TODO: Make this configurable - for now assuming backend runs on localhost:8080
@@ -56,10 +54,12 @@ function App() {
         setModifiedHtml(htmlWithShortUrls);
       }
       
+      toast.success(`Successfully shortened ${shortenedUrlsData.length} URLs!`, { id: 'shortening' });
       setStatus('shortened');
     } catch (err) {
       console.error('Error shortening URLs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to shorten URLs');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to shorten URLs';
+      toast.error(errorMessage, { id: 'shortening' });
       setStatus('success'); // Fall back to showing original URLs
     }
   };
@@ -67,7 +67,6 @@ function App() {
   const handleFileSelect = (file: File) => {
     setStatus('processing');
     setFileName(file.name);
-    setUrls([]);
 
     const reader = new FileReader();
 
@@ -106,12 +105,15 @@ function App() {
         rawCssUrls.forEach(url => uniqueUrls.add(url));
 
         const extractedUrls = Array.from(uniqueUrls).sort();
-        setUrls(extractedUrls);
         setStatus('success');
         
-        // Automatically send URLs to backend for shortening
+        // Show success toast for URL extraction
         if (extractedUrls.length > 0) {
+          toast.success(`Found ${extractedUrls.length} URLs in your HTML file`);
+          // Automatically send URLs to backend for shortening
           shortenUrls(extractedUrls, content);
+        } else {
+          toast.info('No URLs found in the HTML file');
         }
       }
     };
@@ -121,20 +123,16 @@ function App() {
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4 sm:p-8">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-gray-800">HTML URL Extractor</h1>
-        <p className="text-lg text-gray-600 mt-2">Upload an HTML file to extract all of its URLs.</p>
-      </div>
+      {/* Add top spacing to push content to top third */}
+      <div className="flex-1 w-full max-w-2xl flex flex-col items-center justify-start pt-16 sm:pt-20">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-800">HTML URL Shortener</h1>
+          <p className="text-lg text-gray-600 mt-2">Upload an HTML file to shorten all of its URLs.</p>
+        </div>
 
-      <FileUploader onFileSelect={handleFileSelect} fileName={fileName} />
-      <UrlList 
-        urls={urls} 
-        shortenedUrls={shortenedUrls}
-        status={status} 
-        error={error}
-        modifiedHtml={modifiedHtml}
-        fileName={fileName}
-      />
+        <FileUploader onFileSelect={handleFileSelect} fileName={fileName} status={status} modifiedHtml={modifiedHtml} shortenedUrls={shortenedUrls} />
+      </div>
+      <Toaster richColors position="bottom-right" />
     </main>
   );
 }
